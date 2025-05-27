@@ -1,0 +1,17 @@
+pytorch 的默认执行是 eager execution: define-by-run, 即 动态执行, 就像普通Python解释器一样, 逐行运行每一条torch py code
+优点是对 dynamic control flow (if/loop) 很友好, 原生 python object 无缝穿插使用
+缺点是慢, 一方面 python解释器有限制, 另一方面是 network 计算图没有全局优化
+
+graph-based execution: 整体构建 network 计算图 以充分优化，易于 port 到非python环境。缺点就是 eager execution反过来
+
+混合编程 hybrid program
+for pytorch 1, 解决方案叫 torchscript: pytorch 的一个可以被完整编译成 静态计算图 的子集
+    方法1: tracing, torch.jit.trace, 提供一 batch of input data, torchscript 记录 实际执行过程并生成计算图
+    好坏处都是显而易见的: 好处就是简单确定, 坏处就是 for graph operations based on input data, 无法全部捕捉
+    方法2: scripting, @torch.jit.script on nn.Module类, torchsrcipt 会分析源代码, 生成计算图
+    好处是它能处理部分 Python 原生控制流(if/loop), 缺点是不是所有Python code都支持script. 需要针对性改动源代码以 scriptable
+
+介绍一下 torchscript:
+    
+
+for pytorch 2, 解决方案叫 torch.compile。这是一个多项新技术的综合方案，包括 torchDynamo
