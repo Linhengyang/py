@@ -1,0 +1,15 @@
+**/*.DS_Store
+**/exe/
+.vscode
+
+# Build directories
+build/
+build/*
+
+# Other common patterns (optional)
+*.o 
+*.a 
+*.so 
+*.dll 
+*.exe 
+*.pdb 
