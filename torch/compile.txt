@@ -6,6 +6,12 @@ graph-based execution: 整体构建 network 计算图 以充分优化，易于 p
 缺点就是 eager execution反过来，很难调试，很难控制 动态控制流
 
 
+
+
+
+
+
+
 混合编程 hybrid program
 for pytorch 1, 解决方案叫 torchscript: pytorch 的一个可以被完整编译成 静态计算图 IR 的子集, 并在runtime对这个IR作各种优化
     生成IR有两种方法：
