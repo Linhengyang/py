@@ -13,3 +13,7 @@ build/*
 *.dll 
 *.exe 
 *.pdb 
+
+# tmp directories
+tmp/
+tmp/*

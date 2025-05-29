@@ -22,7 +22,7 @@ for pytorch 1, 解决方案叫 torchscript: pytorch 的一个可以被完整编�
     方法2: scripting, 装饰 torch.jit.script 到 nn.Module类, torchsrcipt 会分析源代码, 生成计算图
     好处是它能处理部分 Python 原生控制流(if/loop), 缺点是不是所有Python code都支持script. 需要针对性改动源代码以 scriptable
 
-介绍一下 torchscript: script.ipynb
+介绍一下 torchscript: 请看 script.ipynb
 
 
 
@@ -40,8 +40,27 @@ for pytorch 2, 解决方案叫 torch.compile。这是一个多项新技术的综
     对于不可编译成 graph 的部分（比如外部 library 调用、复杂的dynamic control flow等不可被静态表示的），它可以退出编译，以eager execution
     的办法执行这部分后，再开始对剩下的部分尝试编译。      -------------------> torchDynamo, 一个可动态退出的JIT编译前端
 
-    第二步: torch.FX(functional eXchange), IR
+    第一步的结果: torch.FX(functional eXchange), IR  
 
-    第三步: torchInductor, 编译后端, 把 FX graph 编译成 optimized kernels. 默认的后端是 Triton, 可以理解为跑在 cuda 上的 python
+    核心理念： PyTorch FX 是一个用于程序捕获和转换的工具包，专注于在 Python 层面安全、可靠地获取和操作 PyTorch 模型（特别是 nn.Module 实例）的中间表示。
+    它是一个更底层的、面向开发者的工具，是 PyTorch 2.x 中 torch.compile 的基石之一。
+
+    作用：
+    符号化跟踪 (Symbolic Tracing)： FX 的核心是 torch.fx.symbolic_trace。与 TorchScript 的跟踪不同，FX 的符号化跟踪能够更智能地处理 Python 语言特性，
+        并构建一个名为 Graph 的中间表示。这个 Graph 包含了一系列 Node，每个 Node 代表一个 PyTorch 操作或 Python 函数调用。
+    中间表示 (Intermediate Representation, IR)： FX 生成的 Graph 是一种高级、易于理解和操作的 IR，它保留了原始 PyTorch 代码的结构，
+        比如 nn.Module 的调用会作为图中的一个节点，而不是将其内部操作全部展开。这使得开发者可以方便地对模型图进行：
+            转换 (Transformation)： 例如，模型量化 (Quantization)、图优化 (Graph Optimization)、算子融合 (Operator Fusion) 等。
+            分析 (Analysis)： 比如，识别模型中的特定模式。
+    Python 代码生成 (Python Code Generation)： FX 可以将一个 Graph 转换回可执行的 Python 代码，生成一个新的 nn.Module 实例（称为 GraphModule）。
+        这是 FX 被称为 "Python-to-Python" 转换工具的原因。这意味着通过 FX 转换后的模型仍然是普通的 PyTorch Python 模型，可以继续在 Eager 模式下运行，也可以再次被其他工具处理。
+
+    组成部分：
+    SymbolicTracer： 负责将 nn.Module 的 forward 方法转换为 Graph。
+    Graph： 核心的 IR，由一系列 Node 组成。
+    GraphModule： 一个特殊的 nn.Module 子类，它包含一个 Graph，并且其 forward 方法是根据这个 Graph 动态生成的 Python 代码。  
+
+
+    第二步: torchInductor, 编译后端, 把 FX graph 编译成 optimized kernels 即高性能代码. 默认的后端是 Triton, 可以理解为跑在 cuda 上的 python
 
     auto-grad: 构建反向转播图
