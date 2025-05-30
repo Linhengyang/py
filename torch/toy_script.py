@@ -1,4 +1,4 @@
-# torch compile
+# torch script
 import time
 import numpy as np
 import torch
