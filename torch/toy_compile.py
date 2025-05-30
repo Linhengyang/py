@@ -48,18 +48,25 @@ class benchmark:
 # toy network
 
 # sequential
-def get_sequentialNet():
-    net = nn.Sequential(nn.Linear(512, 256),
-                        nn.ReLU(),
-                        nn.Linear(256, 128),
-                        nn.ReLU(),
-                        nn.Linear(128, 2))
-    return net
+def get_toyNet():
+    class toynet(nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.layer1 = nn.Linear(512, 256)
+            self.relu = nn.ReLU()
+            self.layer2 = nn.Linear(256, 128)
+            self.layer3 = nn.Linear(128, 2)
+
+        def forward(self, X):
+            # X shape: (batch_size, 512)
+            pass
+    
+    return toynet()
 device = torch.device("cuda")
 x = torch.randn(size=(1, 1, 512), device=device)
 
 
-net = get_sequentialNet()
+net = get_toyNet()
 net.to(device)
 
 net.eval()
@@ -88,7 +95,7 @@ with benchmark('eager: 1000 loop'):
 
 # compile
 with benchmark('compile:'):
-    compile_net = torch.compile(get_sequentialNet().to(device))
+    compile_net = torch.compile(get_toyNet().to(device))
 
 compile_net.eval()
 
