@@ -55,25 +55,53 @@ def get_sequentialNet():
                         nn.ReLU(),
                         nn.Linear(128, 2))
     return net
+device = torch.device("cuda")
+x = torch.randn(size=(1, 1, 512), device=device)
 
-x = torch.randn(size=(512, 10, 512))
 
 net = get_sequentialNet()
+net.to(device)
 
-
+net.eval()
 print( net(x) )
 
-compile_net = torch.compile(net)
 
-print( compile_net(x) )
+# eager mode
+with benchmark('eager: warm up'):
+    for i in range(5):
+        net(x)
 
-with benchmark('without torchcompile'):
-    for i in range(10000):
+with benchmark('eager: 1000 loop'):
+    for i in range(1000):
         net(x)
 
 
-with benchmark('with torchcompile'):
-    for i in range(10000):
+
+
+
+
+
+
+
+
+
+
+# compile
+with benchmark('compile:'):
+    compile_net = torch.compile(get_sequentialNet().to(device))
+
+compile_net.eval()
+
+print( compile_net(x) )
+
+
+
+with benchmark('compile: warm up'):
+    for i in range(5):
+        compile_net(x)
+
+with benchmark('compile: 1000 loop'):
+    for i in range(1000):
         compile_net(x)
 
 
