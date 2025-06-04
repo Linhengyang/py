@@ -57,10 +57,34 @@ for pytorch 2, 解决方案叫 torch.compile。这是一个多项新技术的综
 
     组成部分：
     SymbolicTracer： 负责将 nn.Module 的 forward 方法转换为 Graph。
-    Graph： 核心的 IR，由一系列 Node 组成。
-    GraphModule： 一个特殊的 nn.Module 子类，它包含一个 Graph，并且其 forward 方法是根据这个 Graph 动态生成的 Python 代码。  
+    Graph： 核心的 IR，由一系列 Node 组成。（开发者可以在这一步修改 Graph）。
+    GraphModule： 一个特殊的 nn.Module 子类，它包含一个 Graph，并且其 forward 方法是根据这个 Graph 动态生成的 Python 代码（动态生成是指把图重新写成Pytorch代码）。
 
 
     第二步: torchInductor, 编译后端, 把 FX graph 编译成 optimized kernels 即高性能代码. 默认的后端是 Triton, 可以理解为跑在 cuda 上的 python
 
     auto-grad: 构建反向转播图
+
+
+
+
+
+
+compile 和 scripting/tracing 的不同点
+
+对于 compile 方法，torch.compile 是对原 eager-mode model 的一个wrapper：所有参数 params 依然保存在 原 eager-mode model instance 中。
+torch.compile解决的是“你代码写得不够好”的问题：
+    1. 它先通过 torchDynamo，理解python字节码，识别出 可编译部分 和 不可编译部分。对于 不可编译部分，它将以 eager-mode 执行。可编译部分就是一个个 子图，进入下一步
+    2. 使用 FX 去中间表示这些 子图。表示的过程分三步，
+        1. 符号化跟踪 (Symbolic Tracing)子图，生成一个中间表示 Graph
+        2. 开发者可以对 Graph 作修改
+        3. FX可以将这个 Graph 重新转换成 Python 代码，重新解释成一个熟悉的 nn.Module 对象（叫GraphModule）。由于是机器从 Graph 翻译过来的，所以它是纯 Pytorch操作
+    3. 最后使用 torchInductor，把上一步得到的 Graph 编译成 高性能代码（是Triton这样的DSL还是机器码，不太清楚细节）
+
+归纳一下，torch.compile 是通过复杂的图/子图捉取、代码生成，来提升训练和推理的性能，模型参数仍然被 original nn.Module 管理。
+
+
+对于 script/trace 方法，torch.jit.script/torch.jit.tracing：
+对原 eager-mode model 的源代码作静态分析python字节码（original nn.Module）被JIT编译成一个全新的 torch.jit.scriptModule 对象。
+这个对象是 original nn.Module 的解耦的、独立的、可序列化的中间表示。它自身就保管了所有参数（从original nn.Module复制），且使用C++ backed graph。所以它可以被移植到非Python
+环境。
