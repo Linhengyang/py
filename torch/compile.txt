@@ -85,6 +85,6 @@ torch.compile解决的是“你代码写得不够好”的问题：
 
 
 对于 script/trace 方法，torch.jit.script/torch.jit.tracing：
-对原 eager-mode model 的源代码作静态分析python字节码（original nn.Module）被JIT编译成一个全新的 torch.jit.scriptModule 对象。
+对原 eager-mode model 的源代码 or python字节码（original nn.Module）作静态分析，JIT编译成一个全新的 torch.jit.scriptModule 对象。
 这个对象是 original nn.Module 的解耦的、独立的、可序列化的中间表示。它自身就保管了所有参数（从original nn.Module复制），且使用C++ backed graph。所以它可以被移植到非Python
-环境。
+环境。torch.jit.script/torch.jit.tracing 解决的是“你的工具python解释器太慢”的问题。

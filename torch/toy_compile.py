@@ -127,7 +127,7 @@ with benchmark('compile:'):
 
 print( f'compile_net(x) at first: {compile_net(x)}' )
 
-
+print( f'type of compile net: {type(compile_net)}' )
 
 
 with benchmark('compile: warm up'):
