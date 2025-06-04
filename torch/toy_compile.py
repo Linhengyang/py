@@ -44,7 +44,6 @@ class benchmark:
         print(f'{self.description}: {self.timer.stop():.4f} sec')
 
 
-# script
 # toy network
 
 # sequential
@@ -58,10 +57,37 @@ def get_toyNet():
             self.layer3 = nn.Linear(128, 2)
 
         def forward(self, X):
-            # X shape: (batch_size, 512)
-            pass
-    
+            # X shape: (batch_size, num_seq, 512)
+            
+            # test dynamic control flow
+            if X.sum() > 0:
+                s = -torch.ones_like(X, device=X.device)
+            else:
+                s = torch.ones_like(X, device=X.device)
+
+            Y = self.layer1(X + s)
+
+            for i in range(5):
+                X = X * 1/2
+            
+
+            if torch.randn(1) > 0:
+                X = X[:, :, :256]
+            else:
+                X = X[:, :, 256:]
+
+            Z = self.layer2(Y + X)
+            Z = self.relu(Z)
+
+            while Z.sum() > 0:
+                Z = Z - 1/16
+            
+            return self.layer3(Z)
+            
     return toynet()
+
+
+
 device = torch.device("cuda")
 x = torch.randn(size=(1, 1, 512), device=device)
 
@@ -69,8 +95,10 @@ x = torch.randn(size=(1, 1, 512), device=device)
 net = get_toyNet()
 net.to(device)
 
-net.eval()
-print( net(x) )
+net.train()
+print( f'net(x) at first: {net(x)}' )
+
+
 
 
 # eager mode
@@ -78,8 +106,8 @@ with benchmark('eager: warm up'):
     for i in range(5):
         net(x)
 
-with benchmark('eager: 1000 loop'):
-    for i in range(1000):
+with benchmark('eager: 100 loop'):
+    for i in range(100):
         net(x)
 
 
@@ -95,11 +123,10 @@ with benchmark('eager: 1000 loop'):
 
 # compile
 with benchmark('compile:'):
-    compile_net = torch.compile(get_toyNet().to(device))
+    compile_net = torch.compile(net)
 
-compile_net.eval()
+print( f'compile_net(x) at first: {compile_net(x)}' )
 
-print( compile_net(x) )
 
 
 
@@ -107,8 +134,19 @@ with benchmark('compile: warm up'):
     for i in range(5):
         compile_net(x)
 
-with benchmark('compile: 1000 loop'):
-    for i in range(1000):
-        compile_net(x)
+with benchmark('compile: 100 loop'):
+    loss_fn = nn.CrossEntropyLoss()
+    for i in range(100):
+        y_hat = compile_net(x) # (1, 1, 2)
+        y_hat = y_hat.permute(0,2,1) # (1, 2, 1)
+        y = torch.randint(0, 2, (1,1), device=device) # (1, 1)
+        l = loss_fn(y_hat, y)
+
+        l.sum().backward()
 
 
+
+print( f'net(x) after train: {net(x)}' )
+print( f'compile_net(x) after train: {compile_net(x)}' )
+
+# net.state_dict()
