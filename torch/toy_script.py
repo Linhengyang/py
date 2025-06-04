@@ -131,6 +131,6 @@ print(f'loaded dynamic net output {new_net(x)}')
 
 
 # 读取 静态模型
-another_net = torch.jit.load('tmp/net')
+static_net = torch.jit.load('tmp/net')
 
-print(f'loaded script net output {another_net(x)}')
+print(f'loaded script net output {static_net(x)}')
