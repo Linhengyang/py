@@ -44,26 +44,61 @@ class benchmark:
         print(f'{self.description}: {self.timer.stop():.4f} sec')
 
 
-# script
-# toy network
 
-# sequential
-def get_sequentialNet():
-    net = nn.Sequential(nn.Linear(512, 256),
-                        nn.ReLU(),
-                        nn.Linear(256, 128),
-                        nn.ReLU(),
-                        nn.Linear(128, 2))
-    return net
+# toy network
+def get_toyNet():
+    class toynet(nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.layer1 = nn.Linear(512, 256)
+            self.relu = nn.ReLU()
+            self.layer2 = nn.Linear(256, 128)
+            self.layer3 = nn.Linear(128, 2)
+
+        def forward(self, X):
+            # X shape: (batch_size, num_seq, 512)
+            
+            # test dynamic control flow
+            if X.sum() > 0:
+                s = -torch.ones_like(X, device=X.device)
+            else:
+                s = torch.ones_like(X, device=X.device)
+
+            Y = self.layer1(X + s)
+
+            for i in range(5):
+                X = X * 1/2
+            
+
+            if torch.randn(1) > 0:
+                X = X[:, :, :256]
+            else:
+                X = X[:, :, 256:]
+
+            Z = self.layer2(Y + X)
+            Z = self.relu(Z)
+
+            while Z.sum() > 0:
+                Z = Z - 1/16
+            
+            return self.layer3(Z)
+            
+    return toynet()
 
 x = torch.randn(size=(1, 2, 512))
 
-net = get_sequentialNet()
 
+
+# eager mode
+net = get_toyNet()
 
 print( net(x) )
 
-script_net = torch.jit.script(net)
+
+
+
+# script
+script_net = torch.jit.script(get_toyNet())
 
 print( script_net(x) )
 
@@ -82,3 +117,20 @@ torch.save(net.state_dict(), 'tmp/net.params')
 
 # 对于 静态模型，存储的是模型，序列化
 script_net.save('tmp/net')
+
+
+
+
+
+# 读取 动态模型
+new_net = get_toyNet()
+new_net.load_state_dict( torch.load('tmp/net.params') )
+
+
+print(f'loaded dynamic net output {new_net(x)}')
+
+
+# 读取 静态模型
+another_net = torch.jit.load('tmp/net')
+
+print(f'loaded script net output {another_net(x)}')
