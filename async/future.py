@@ -173,7 +173,7 @@ print(f'{num_threads} threads time {time.time()-begin}')
 #   2. Task(提交事件循环), 能够并发地开始执行，并且主协程不等待第一个完成就去启动第二个（或处理其他事情），那么
 #            需要使用 asyncio.create_task() 来“后台”运行这些协程。asyncio.create_task() 的作用就是把一个协程包装成一个 Task
 #           （这也是一个 Future 对象），然后把它提交给事件循环，让它立即开始调度运行，而不会阻塞当前协程。
-
+# 详见 await.py
 
 
 # asyncio.Future
